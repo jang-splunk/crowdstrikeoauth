@@ -3836,3 +3836,4 @@ action_result.summary.resources_affected | string |  |
 action_result.message | string |  |   Rule deleted successfully 
 summary.total_objects | numeric |  |   1 
 summary.total_objects_successful | numeric |  |   1 
+
