@@ -4070,8 +4070,49 @@ class CrowdstrikeConnector(BaseConnector):
             self.debug_print('FIPS is not enabled')
         return fips_enabled
 
-    def handle_action(self, param):
+    def _handle_check_quota(self, param):
+        # Implement the handler here
+        # use self.save_progress(...) to send progress messages back to the platform
+        self.save_progress("In action handler for: {0}".format(self.get_action_identifier()))
 
+        # Add an action result to the App Run
+        action_result = self.add_action_result(ActionResult(dict(param)))
+        query_param = {
+        }
+        header = {
+            'accept': 'application/json'
+        }
+
+        ret_val, resp_json = self._make_rest_call_helper_oauth2(
+            action_result, params=query_param, headers=header, endpoint='/falconx/entities/submissions/v1?ids=')
+        self.save_progress("JSON RESPONSE: " + str(resp_json))
+
+        if phantom.is_fail(ret_val):
+            self.debug_print('Error response returned from the API')
+            return action_result.get_status()
+        
+        total = resp_json['meta']['quota']['total']
+        used = resp_json['meta']['quota']['used']
+        in_progress = resp_json['meta']['quota']['in_progress']
+
+        #action_result.add_data(resp_json)
+        action_result.add_data({"total": total,"used":used,"in_progress":in_progress})
+        #action_result.add_data({"used": used})
+        #action_result.add_data({"in_progress": in_progress})
+
+        self.debug_print("Total: " + str(total))
+        self.debug_print("Used: " + str(used))
+        self.debug_print("In Progress: " + str(in_progress))
+
+        action_result.update_summary({
+            'total': total,
+            'used': used,
+            'in_progress': in_progress
+        })
+
+        return action_result.set_status(phantom.APP_SUCCESS, "Quota status checked successfully!")
+
+    def handle_action(self, param):
         # Get the action that we are supposed to execute for this App Run
         self.debug_print("action_id ", self.get_action_identifier())
 
@@ -4146,7 +4187,8 @@ class CrowdstrikeConnector(BaseConnector):
             'list_ioa_types': self._handle_list_ioa_types,
             'create_ioa_rule': self._handle_create_ioa_rule,
             'update_ioa_rule': self._handle_update_ioa_rule,
-            'delete_ioa_rule': self._handle_delete_ioa_rule
+            'delete_ioa_rule': self._handle_delete_ioa_rule,
+            'check_quota': self._handle_check_quota,
         }
 
         action = self.get_action_identifier()
